@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session,flash
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
-import re
+import re, hashlib
 
 
 app = Flask(__name__)
@@ -29,6 +29,11 @@ def login():
         # Create variables for easy access
         username = request.form['username']
         password = request.form['password']
+
+        # Retrieve the hashed password
+        hash = password + app.secret_key
+        hash = hashlib.sha1(hash.encode())
+        password = hash.hexdigest()
         # Check if account exists using MySQL
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('SELECT * FROM accounts WHERE username = %s AND password = %s', (username, password))
@@ -73,7 +78,11 @@ def register():
         elif not username or not password or not email:
             flash("Incorrect username/password!", "danger")
         else:
-        # Account doesnt exists and the form data is valid, now insert new account into accounts table
+            # Hash the password
+            hash = password + app.secret_key
+            hash = hashlib.sha1(hash.encode())
+            password = hash.hexdigest()
+            # Account doesnt exists and the form data is valid, now insert new account into accounts table
             cursor.execute('INSERT INTO accounts VALUES (NULL, %s, %s, %s)', (username,email, password))
             mysql.connection.commit()
             flash("You have successfully registered!", "success")
